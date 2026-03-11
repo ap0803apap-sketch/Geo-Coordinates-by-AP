@@ -135,9 +135,9 @@ Android Emulator
 
 Physical Android Device
 
-| Home Screen                                                                                              | Settings Screen                                                                                          | Tracking Screen                                                                                          |
-| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| <img src="https://github.com/user-attachments/assets/5b136e90-5a08-439b-b085-d2d415faa4a0" width="250"/> |  <img src="https://github.com/user-attachments/assets/80d85b4a-f43b-46a0-9c74-a741caad18aa" width="250"/> |<img src="https://github.com/user-attachments/assets/8d966210-4d87-48cf-a904-66ac7f673aec" width="250"/> |
+| Home Screen | Settings Screen | Tracking Screen |
+|-------------|----------------|----------------|
+| <img src="https://github.com/user-attachments/assets/5b136e90-5a08-439b-b085-d2d415faa4a0" width="250"/> | <img src="https://github.com/user-attachments/assets/8d966210-4d87-48cf-a904-66ac7f673aec" width="250"/> | <img src="https://github.com/user-attachments/assets/80d85b4a-f43b-46a0-9c74-a741caad18aa" width="250"/> |
 
 
 🤝 Contributing
