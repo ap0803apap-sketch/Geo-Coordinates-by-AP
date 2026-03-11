@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -23,6 +24,8 @@ import com.gps.locationtracker.ui.theme.GPSLocationTrackerTheme
 import com.gps.locationtracker.viewmodel.AuthViewModel
 import com.gps.locationtracker.viewmodel.LocationViewModel
 import com.gps.locationtracker.viewmodel.SettingsViewModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 // Changed to AppCompatActivity to support BiometricPrompt
@@ -40,7 +43,12 @@ class MainActivity : AppCompatActivity() {
 
         if (fineLocationGranted || coarseLocationGranted) {
             Timber.d("Location permissions granted via launcher")
-            startLocationService()
+            lifecycleScope.launch {
+                val isEnabled = locationViewModel.isTrackingEnabled.value
+                if (isEnabled) {
+                    startLocationService()
+                }
+            }
         } else {
             Timber.e("Location permissions denied via launcher")
         }
@@ -92,7 +100,12 @@ class MainActivity : AppCompatActivity() {
         if (missingPermissions.isNotEmpty()) {
             requestPermissionLauncher.launch(missingPermissions.toTypedArray())
         } else {
-            startLocationService()
+            lifecycleScope.launch {
+                val isEnabled = locationViewModel.isTrackingEnabled.value
+                if (isEnabled) {
+                    startLocationService()
+                }
+            }
         }
     }
 
@@ -115,7 +128,18 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        startLocationService()
+        // Check if tracking is enabled before starting service
+        lifecycleScope.launch {
+            // Wait for first value if necessary, but value is usually available
+            val isEnabled = locationViewModel.isTrackingEnabled.value
+            if (isEnabled) {
+                startLocationService()
+            } else {
+                Timber.d("Tracking disabled, not starting service in onResume")
+                // Ensure service is stopped if it's running
+                LocationTrackingService.stopLocationTracking(this@MainActivity)
+            }
+        }
     }
 }
 

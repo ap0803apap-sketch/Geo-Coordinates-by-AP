@@ -14,6 +14,7 @@ object Constants {
     const val KEY_IS_LOGGED_IN = "is_logged_in"
     const val KEY_IS_GUEST = "is_guest"
     const val KEY_IS_SETUP_COMPLETE = "is_setup_complete"
+    const val KEY_TRACKING_ENABLED = "tracking_enabled"
     const val KEY_SMS_TRIGGER_KEY = "sms_trigger_key"
     const val KEY_SELECTED_GPS_METHOD = "selected_gps_method"
     const val KEY_SCHEDULED_TIMES = "scheduled_times"

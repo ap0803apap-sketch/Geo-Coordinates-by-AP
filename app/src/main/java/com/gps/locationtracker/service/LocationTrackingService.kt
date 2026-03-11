@@ -90,6 +90,14 @@ class LocationTrackingService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Timber.d("LocationTrackingService onStartCommand with action: ${intent?.action}")
 
+        // Handle Stop action immediately to stop service
+        if (intent?.action == Constants.ACTION_STOP_LOCATION_TRACKING) {
+            stopLocationTracking()
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
         val hasFine = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
         val hasCoarse = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
         
@@ -119,9 +127,21 @@ class LocationTrackingService : Service() {
 
         when (intent?.action) {
             Constants.ACTION_START_LOCATION_TRACKING -> startLocationTracking()
-            Constants.ACTION_STOP_LOCATION_TRACKING -> stopLocationTracking()
             Constants.ACTION_CAPTURE_LOCATION_SMS -> captureSingleLocation("SMS")
-            else -> if (!isTracking) startLocationTracking()
+            else -> {
+                // Check preference before starting tracking for default actions or process restart
+                coroutineScope.launch {
+                    val isEnabled = preferencesRepository.isTrackingEnabled().first()
+                    if (isEnabled) {
+                        if (!isTracking) startLocationTracking()
+                    } else {
+                        Timber.d("Tracking is disabled in preferences. Stopping service.")
+                        stopLocationTracking()
+                        stopForeground(STOP_FOREGROUND_REMOVE)
+                        stopSelf()
+                    }
+                }
+            }
         }
 
         return START_STICKY
@@ -277,6 +297,7 @@ class LocationTrackingService : Service() {
             val intent = Intent(context, LocationTrackingService::class.java).apply {
                 action = Constants.ACTION_STOP_LOCATION_TRACKING
             }
+            // Use startService to send the STOP action intent
             context.startService(intent)
         }
     }

@@ -30,6 +30,7 @@ class PreferencesRepository(private val context: Context) {
     private val isLoggedInKey = booleanPreferencesKey(Constants.KEY_IS_LOGGED_IN)
     private val isGuestKey = booleanPreferencesKey(Constants.KEY_IS_GUEST)
     private val isSetupCompleteKey = booleanPreferencesKey(Constants.KEY_IS_SETUP_COMPLETE)
+    private val trackingEnabledKey = booleanPreferencesKey(Constants.KEY_TRACKING_ENABLED)
     private val smsTriggerKeyKey = stringPreferencesKey(Constants.KEY_SMS_TRIGGER_KEY)
     private val selectedGpsMethodKey = stringPreferencesKey(Constants.KEY_SELECTED_GPS_METHOD)
     private val darkModeKey = booleanPreferencesKey(Constants.KEY_DARK_MODE)
@@ -132,6 +133,14 @@ class PreferencesRepository(private val context: Context) {
 
     fun getTrackingInterval(): Flow<Long> {
         return dataStore.data.map { it[trackingIntervalKey] ?: Constants.LOCATION_UPDATE_INTERVAL }
+    }
+
+    suspend fun setTrackingEnabled(enabled: Boolean) {
+        dataStore.edit { it[trackingEnabledKey] = enabled }
+    }
+
+    fun isTrackingEnabled(): Flow<Boolean> {
+        return dataStore.data.map { it[trackingEnabledKey] ?: true } // Default to true
     }
 
     suspend fun setLogRetentionDays(days: Int) {

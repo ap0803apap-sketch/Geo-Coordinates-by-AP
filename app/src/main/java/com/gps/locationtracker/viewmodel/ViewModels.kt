@@ -12,6 +12,7 @@ import com.gps.locationtracker.data.repository.PreferencesRepository
 import com.gps.locationtracker.data.repository.GoogleDriveRepository
 import com.gps.locationtracker.data.models.LocationData
 import com.gps.locationtracker.service.DeviceAdminReceiver
+import com.gps.locationtracker.service.LocationTrackingService
 import com.gps.locationtracker.utils.Constants
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -149,6 +150,7 @@ class LocationViewModel(application: Application) : AndroidViewModel(application
     private val driveRepository = GoogleDriveRepository(application.applicationContext)
     private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
     private val sdf = SimpleDateFormat(Constants.DATE_TIME_FORMAT, Locale.US)
+    private val context = application.applicationContext
 
     private val _allLocations = MutableStateFlow<List<LocationData>>(emptyList())
     val allLocations: StateFlow<List<LocationData>> = _allLocations.asStateFlow()
@@ -171,10 +173,36 @@ class LocationViewModel(application: Application) : AndroidViewModel(application
     private val _isRefreshing = MutableStateFlow(false)
     val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
+    private val _isTrackingEnabled = MutableStateFlow(true)
+    val isTrackingEnabled: StateFlow<Boolean> = _isTrackingEnabled.asStateFlow()
+
     init {
         loadAllLocations()
         loadLocationStats()
         setupLogCleanup()
+        loadTrackingPreference()
+    }
+
+    private fun loadTrackingPreference() {
+        viewModelScope.launch {
+            preferencesRepository.isTrackingEnabled().collect { enabled ->
+                _isTrackingEnabled.value = enabled
+                Timber.d("Tracking enabled preference loaded: $enabled")
+            }
+        }
+    }
+
+    fun toggleTracking(enabled: Boolean) {
+        viewModelScope.launch {
+            preferencesRepository.setTrackingEnabled(enabled)
+            _isTrackingEnabled.value = enabled
+            if (enabled) {
+                LocationTrackingService.startLocationTracking(context)
+            } else {
+                LocationTrackingService.stopLocationTracking(context)
+            }
+            Timber.d("Location tracking toggled to: $enabled")
+        }
     }
 
     private fun setupLogCleanup() {

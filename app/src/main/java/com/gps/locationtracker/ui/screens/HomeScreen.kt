@@ -38,6 +38,7 @@ fun HomeScreen(
     val liveLocation by locationViewModel.liveLocation.collectAsState()
     val locationCount by locationViewModel.locationCount.collectAsState()
     val isRefreshing by locationViewModel.isRefreshing.collectAsState()
+    val isTrackingEnabled by locationViewModel.isTrackingEnabled.collectAsState()
     
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -73,12 +74,54 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             
-            Text(
-                text = "Location tracking is active in background",
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = 24.dp)
-            )
+            // Tracking Toggle Row
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isTrackingEnabled) 
+                        MaterialTheme.colorScheme.primaryContainer 
+                    else 
+                        MaterialTheme.colorScheme.surfaceVariant
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = if (isTrackingEnabled) "Tracking Active" else "Tracking Paused",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = if (isTrackingEnabled) 
+                                MaterialTheme.colorScheme.onPrimaryContainer 
+                            else 
+                                MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = if (isTrackingEnabled) 
+                                "Background service is running" 
+                            else 
+                                "Automatic logs are disabled",
+                            fontSize = 12.sp,
+                            color = if (isTrackingEnabled) 
+                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f) 
+                            else 
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = isTrackingEnabled,
+                        onCheckedChange = { locationViewModel.toggleTracking(it) }
+                    )
+                }
+            }
 
             // Current Location Card
             Card(
