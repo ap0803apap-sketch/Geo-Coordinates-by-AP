@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import com.gps.locationtracker.data.models.LocationData
 import com.gps.locationtracker.utils.FileUtils
+import com.gps.locationtracker.viewmodel.AuthViewModel
 import com.gps.locationtracker.viewmodel.LocationViewModel
 import kotlinx.coroutines.launch
 
@@ -32,10 +33,12 @@ import kotlinx.coroutines.launch
 @Composable
 fun LogsScreen(
     navController: NavHostController,
-    locationViewModel: LocationViewModel
+    locationViewModel: LocationViewModel,
+    authViewModel: AuthViewModel
 ) {
     val allLocations by locationViewModel.allLocations.collectAsState()
     val isUploading by locationViewModel.isUploading.collectAsState()
+    val isGuest by authViewModel.isGuest.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     
@@ -147,7 +150,7 @@ fun LogsScreen(
                         icon = Icons.Default.CloudUpload,
                         label = "To Drive",
                         modifier = Modifier.weight(1f),
-                        enabled = !isUploading,
+                        enabled = !isUploading && !isGuest,
                         onClick = {
                             val file = FileUtils.generateLogPdf(context, allLocations)
                             if (file != null) {
@@ -306,8 +309,17 @@ fun ActionIconButton(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(vertical = 8.dp)
         ) {
-            Icon(icon, contentDescription = label, modifier = Modifier.size(20.dp))
-            Text(label, fontSize = 10.sp)
+            Icon(
+                icon, 
+                contentDescription = label, 
+                modifier = Modifier.size(20.dp),
+                tint = if (enabled) LocalContentColor.current else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
+            Text(
+                label, 
+                fontSize = 10.sp,
+                color = if (enabled) LocalContentColor.current else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
         }
     }
 }

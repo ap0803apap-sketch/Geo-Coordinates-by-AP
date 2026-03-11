@@ -1,18 +1,25 @@
 package com.gps.locationtracker.ui.screens
 
+import android.widget.Toast
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,7 +35,15 @@ fun HomeScreen(
     authViewModel: AuthViewModel
 ) {
     val lastLocation by locationViewModel.lastLocation.collectAsState()
+    val liveLocation by locationViewModel.liveLocation.collectAsState()
     val locationCount by locationViewModel.locationCount.collectAsState()
+    val isRefreshing by locationViewModel.isRefreshing.collectAsState()
+    
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    
+    // Determine which location to display in the card (Live takes priority if available)
+    val displayLocation = liveLocation ?: lastLocation
 
     Scaffold(
         topBar = {
@@ -80,28 +95,81 @@ fun HomeScreen(
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(bottom = 12.dp)
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.MyLocation,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                        Spacer(modifier = Modifier.padding(start = 8.dp))
-                        Text(
-                            text = "Last Captured Location",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.MyLocation,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.padding(start = 8.dp))
+                            Text(
+                                text = if (liveLocation != null) "Live Location" else "Last Captured Location",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                        
+                        // Action Buttons (Refresh & Copy)
+                        Row {
+                            IconButton(
+                                onClick = { 
+                                    locationViewModel.refreshLocation() 
+                                },
+                                enabled = !isRefreshing
+                            ) {
+                                val rotation by animateFloatAsState(
+                                    targetValue = if (isRefreshing) 360f else 0f,
+                                    animationSpec = tween(durationMillis = 1000),
+                                    label = "rotation"
+                                )
+                                Icon(
+                                    Icons.Default.Refresh, 
+                                    contentDescription = "Refresh Live Location",
+                                    modifier = Modifier.rotate(rotation)
+                                )
+                            }
+                            
+                            IconButton(
+                                onClick = {
+                                    displayLocation?.let { loc ->
+                                        val textToCopy = """
+                                            GeoCoordinates Location:
+                                            Latitude: ${loc.latitude}
+                                            Longitude: ${loc.longitude}
+                                            Altitude: ${loc.altitude} m
+                                            Accuracy: ${loc.accuracy} m
+                                            Time: ${loc.formattedTime}
+                                            Source: ${loc.source}
+                                        """.trimIndent()
+                                        clipboardManager.setText(AnnotatedString(textToCopy))
+                                        Toast.makeText(context, "Location copied to clipboard", Toast.LENGTH_SHORT).show()
+                                    } ?: Toast.makeText(context, "No location data to copy", Toast.LENGTH_SHORT).show()
+                                }
+                            ) {
+                                Icon(Icons.Default.ContentCopy, contentDescription = "Copy Location Data")
+                            }
+                        }
                     }
 
-                    if (lastLocation != null) {
-                        LocationRow("Latitude", "%.6f".format(lastLocation?.latitude))
-                        LocationRow("Longitude", "%.6f".format(lastLocation?.longitude))
-                        LocationRow("Altitude", "%.2f m".format(lastLocation?.altitude))
-                        LocationRow("Accuracy", "%.1f m".format(lastLocation?.accuracy))
-                        LocationRow("Time", lastLocation?.formattedTime ?: "N/A")
+                    if (displayLocation != null) {
+                        LocationRow("Latitude", "%.6f".format(displayLocation.latitude))
+                        LocationRow("Longitude", "%.6f".format(displayLocation.longitude))
+                        LocationRow("Altitude", "%.2f m".format(displayLocation.altitude))
+                        LocationRow("Accuracy", "%.1f m".format(displayLocation.accuracy))
+                        LocationRow("Time", displayLocation.formattedTime)
+                        
+                        if (displayLocation.source == "LIVE") {
+                            Text(
+                                text = "Note: Live locations are not saved to logs",
+                                fontSize = 10.sp,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.6f),
+                                modifier = Modifier.padding(top = 8.dp)
+                            )
+                        }
                     } else {
                         Text(
                             text = "Waiting for first GPS fix...",

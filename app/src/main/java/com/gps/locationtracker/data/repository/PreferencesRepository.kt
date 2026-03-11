@@ -28,6 +28,7 @@ class PreferencesRepository(private val context: Context) {
     private val userNameKey = stringPreferencesKey(Constants.KEY_USER_NAME)
     private val userProfilePictureKey = stringPreferencesKey(Constants.KEY_USER_PROFILE_PICTURE)
     private val isLoggedInKey = booleanPreferencesKey(Constants.KEY_IS_LOGGED_IN)
+    private val isGuestKey = booleanPreferencesKey(Constants.KEY_IS_GUEST)
     private val isSetupCompleteKey = booleanPreferencesKey(Constants.KEY_IS_SETUP_COMPLETE)
     private val smsTriggerKeyKey = stringPreferencesKey(Constants.KEY_SMS_TRIGGER_KEY)
     private val selectedGpsMethodKey = stringPreferencesKey(Constants.KEY_SELECTED_GPS_METHOD)
@@ -54,10 +55,25 @@ class PreferencesRepository(private val context: Context) {
                 preferences[userNameKey] = name
                 profilePictureUrl?.let { preferences[userProfilePictureKey] = it }
                 preferences[isLoggedInKey] = true
+                preferences[isGuestKey] = false
             }
             Timber.d("Saved user info: $email")
         } catch (e: Exception) {
             Timber.e("Error saving user info: ${e.message}")
+        }
+    }
+
+    suspend fun saveGuestLogin() {
+        try {
+            dataStore.edit { preferences ->
+                preferences[isLoggedInKey] = true
+                preferences[isGuestKey] = true
+                preferences[userNameKey] = "Guest User"
+                preferences[userEmailKey] = "guest@example.com"
+            }
+            Timber.d("Saved guest login")
+        } catch (e: Exception) {
+            Timber.e("Error saving guest login: ${e.message}")
         }
     }
 
@@ -69,6 +85,7 @@ class PreferencesRepository(private val context: Context) {
                 preferences.remove(userNameKey)
                 preferences.remove(userProfilePictureKey)
                 preferences.remove(isLoggedInKey)
+                preferences.remove(isGuestKey)
                 preferences.remove(googleDriveTokenKey)
             }
             Timber.d("Cleared user info")
@@ -85,6 +102,7 @@ class PreferencesRepository(private val context: Context) {
                 name = preferences[userNameKey] ?: "",
                 profilePictureUrl = preferences[userProfilePictureKey],
                 isLoggedIn = preferences[isLoggedInKey] ?: false,
+                isGuest = preferences[isGuestKey] ?: false,
                 isSetupComplete = preferences[isSetupCompleteKey] ?: false,
                 smsTriggerKey = preferences[smsTriggerKeyKey] ?: "",
                 selectedGpsMethod = preferences[selectedGpsMethodKey] ?: Constants.GPS_METHOD_FUSED,

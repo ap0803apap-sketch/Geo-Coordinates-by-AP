@@ -179,7 +179,7 @@ fun MainNavigation(
             SettingsScreen(navController, authViewModel, settingsViewModel)
         }
         composable("logs") {
-            LogsScreen(navController, locationViewModel)
+            LogsScreen(navController, locationViewModel, authViewModel)
         }
     }
 }

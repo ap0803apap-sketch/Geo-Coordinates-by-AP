@@ -1,21 +1,43 @@
 # Add project specific ProGuard rules here.
 # You can control the set of applied configuration files using the
 # proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# Google Play Services
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# Google Sign-In specific
+-keep class com.google.android.gms.auth.api.signin.** { *; }
+-keep class com.google.android.gms.common.api.** { *; }
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Retrofit & OkHttp
+-keepattributes Signature, InnerClasses, EnclosingMethod
+-keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
+-keepattributes RuntimeInvisibleAnnotations, RuntimeInvisibleParameterAnnotations
+-dontwarn okio.**
+-dontwarn javax.annotation.**
+-dontwarn org.conscrypt.**
+-keepnames class com.fasterxml.jackson.** { *; }
+-keepnames class retrofit2.** { *; }
+-keepnames class okhttp3.** { *; }
+
+# Room
+-keep class androidx.room.paging.** { *; }
+
+# Glide
+-keep public class * extends com.github.bumptech.glide.module.AppGlideModule
+-keep public class * extends com.github.bumptech.glide.module.LibraryGlideModule
+-keep class com.github.bumptech.glide.GeneratedAppGlideModuleImpl
+
+# Kotlin Serialization
+-keepattributes *Annotation*, EnclosingMethod, InnerClasses
+-keepclassmembers class ** {
+    @kotlinx.serialization.Serializable *;
+}
+-keepclassmembers class **$companion {
+    public kotlinx.serialization.KSerializer serializer();
+}
+
+# Preserve line numbers for stack traces
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

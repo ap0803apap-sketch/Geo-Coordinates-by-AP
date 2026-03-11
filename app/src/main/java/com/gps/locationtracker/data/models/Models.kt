@@ -37,6 +37,7 @@ data class UserPreferences(
     val name: String = "",
     val profilePictureUrl: String? = null,
     val isLoggedIn: Boolean = false,
+    val isGuest: Boolean = false,
     val isSetupComplete: Boolean = false,
     val smsTriggerKey: String = "",
     val selectedGpsMethod: String = "FUSED_LOCATION",

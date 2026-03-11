@@ -2,8 +2,11 @@ package com.gps.locationtracker.viewmodel
 
 import android.app.Application
 import android.content.Context
+import android.location.Location
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.gps.locationtracker.data.repository.LocationRepository
 import com.gps.locationtracker.data.repository.PreferencesRepository
 import com.gps.locationtracker.data.repository.GoogleDriveRepository
@@ -17,6 +20,9 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.Random
 
 // Auth ViewModel
@@ -27,6 +33,9 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _isLoggedIn = MutableStateFlow(false)
     val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
+
+    private val _isGuest = MutableStateFlow(false)
+    val isGuest: StateFlow<Boolean> = _isGuest.asStateFlow()
 
     private val _isSetupComplete = MutableStateFlow(false)
     val isSetupComplete: StateFlow<Boolean> = _isSetupComplete.asStateFlow()
@@ -51,12 +60,13 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             preferencesRepository.getUserInfo().collect { userPrefs ->
                 _isLoggedIn.value = userPrefs.isLoggedIn
+                _isGuest.value = userPrefs.isGuest
                 _isSetupComplete.value = userPrefs.isSetupComplete
                 _userEmail.value = userPrefs.email
                 _userName.value = userPrefs.name
                 _smsTriggerKey.value = userPrefs.smsTriggerKey
                 _isAuthReady.value = true
-                Timber.d("User info loaded: isLoggedIn=${userPrefs.isLoggedIn}, isSetupComplete=${userPrefs.isSetupComplete}")
+                Timber.d("User info loaded: isLoggedIn=${userPrefs.isLoggedIn}, isGuest=${userPrefs.isGuest}, isSetupComplete=${userPrefs.isSetupComplete}")
             }
         }
     }
@@ -65,9 +75,21 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             preferencesRepository.saveUserInfo(userId, email, name, profileUrl)
             _isLoggedIn.value = true
+            _isGuest.value = false
             _userEmail.value = email
             _userName.value = name
-            Timber.d("User logged in: $email")
+            Timber.d("User logged in with Google: $email")
+        }
+    }
+
+    fun loginAsGuest() {
+        viewModelScope.launch {
+            preferencesRepository.saveGuestLogin()
+            _isLoggedIn.value = true
+            _isGuest.value = true
+            _userEmail.value = "Guest"
+            _userName.value = "Guest User"
+            Timber.d("User logged in as Guest")
         }
     }
 
@@ -76,6 +98,7 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
             preferencesRepository.clearUserInfo()
             preferencesRepository.clearGoogleDriveToken()
             _isLoggedIn.value = false
+            _isGuest.value = false
             _isSetupComplete.value = false
             _userEmail.value = ""
             _userName.value = ""
@@ -124,12 +147,17 @@ class LocationViewModel(application: Application) : AndroidViewModel(application
     private val locationRepository = LocationRepository(application.applicationContext)
     private val preferencesRepository = PreferencesRepository(application.applicationContext)
     private val driveRepository = GoogleDriveRepository(application.applicationContext)
+    private val fusedLocationClient = LocationServices.getFusedLocationProviderClient(application)
+    private val sdf = SimpleDateFormat(Constants.DATE_TIME_FORMAT, Locale.US)
 
     private val _allLocations = MutableStateFlow<List<LocationData>>(emptyList())
     val allLocations: StateFlow<List<LocationData>> = _allLocations.asStateFlow()
 
     private val _lastLocation = MutableStateFlow<LocationData?>(null)
     val lastLocation: StateFlow<LocationData?> = _lastLocation.asStateFlow()
+
+    private val _liveLocation = MutableStateFlow<LocationData?>(null)
+    val liveLocation: StateFlow<LocationData?> = _liveLocation.asStateFlow()
 
     private val _locationCount = MutableStateFlow(0)
     val locationCount: StateFlow<Int> = _locationCount.asStateFlow()
@@ -139,6 +167,9 @@ class LocationViewModel(application: Application) : AndroidViewModel(application
     
     private val _isUploading = MutableStateFlow(false)
     val isUploading: StateFlow<Boolean> = _isUploading.asStateFlow()
+
+    private val _isRefreshing = MutableStateFlow(false)
+    val isRefreshing: StateFlow<Boolean> = _isRefreshing.asStateFlow()
 
     init {
         loadAllLocations()
@@ -177,6 +208,44 @@ class LocationViewModel(application: Application) : AndroidViewModel(application
             _locationCount.value = total
             _syncedCount.value = synced
             Timber.d("Locations: total=$total, synced=$synced")
+        }
+    }
+
+    fun refreshLocation() {
+        viewModelScope.launch {
+            _isRefreshing.value = true
+            try {
+                // We don't check permissions here as it's expected to be granted at this stage
+                // but in a real app, a check would be safer.
+                fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                    .addOnSuccessListener { location: Location? ->
+                        if (location != null) {
+                            val liveData = LocationData(
+                                id = -1, // Temporary ID
+                                latitude = location.latitude,
+                                longitude = location.longitude,
+                                altitude = location.altitude,
+                                accuracy = location.accuracy,
+                                timestamp = System.currentTimeMillis(),
+                                formattedTime = sdf.format(Date()),
+                                source = "LIVE"
+                            )
+                            _liveLocation.value = liveData
+                            Timber.d("Live location refreshed: ${location.latitude}, ${location.longitude}")
+                        }
+                        _isRefreshing.value = false
+                    }
+                    .addOnFailureListener {
+                        Timber.e("Failed to refresh live location: ${it.message}")
+                        _isRefreshing.value = false
+                    }
+            } catch (e: SecurityException) {
+                Timber.e("Security exception refreshing location: ${e.message}")
+                _isRefreshing.value = false
+            } catch (e: Exception) {
+                Timber.e("Unexpected error refreshing location: ${e.message}")
+                _isRefreshing.value = false
+            }
         }
     }
 

@@ -12,6 +12,7 @@ object Constants {
     const val KEY_USER_NAME = "user_name"
     const val KEY_USER_PROFILE_PICTURE = "user_profile_picture"
     const val KEY_IS_LOGGED_IN = "is_logged_in"
+    const val KEY_IS_GUEST = "is_guest"
     const val KEY_IS_SETUP_COMPLETE = "is_setup_complete"
     const val KEY_SMS_TRIGGER_KEY = "sms_trigger_key"
     const val KEY_SELECTED_GPS_METHOD = "selected_gps_method"
@@ -47,8 +48,8 @@ object Constants {
     const val GPS_METHOD_FUSED = "FUSED_LOCATION"
     const val GPS_METHOD_NETWORK = "NETWORK_LOCATION"
     const val GPS_METHOD_GPS_ONLY = "GPS_ONLY"
-    const val LOCATION_UPDATE_INTERVAL = 1000L // 1 second
-    const val LOCATION_FASTEST_INTERVAL = 500L // 0.5 second
+    const val LOCATION_UPDATE_INTERVAL = 3600000L // 1 hour
+    const val LOCATION_FASTEST_INTERVAL = 1800000L // 30 minutes
     const val LOCATION_PRIORITY = 100 // HIGH_ACCURACY
 
     // SMS Trigger
